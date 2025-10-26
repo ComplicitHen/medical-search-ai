@@ -7,9 +7,16 @@ interface SearchResult {
   source: string;
 }
 
+interface Sources {
+  pubmed?: boolean;
+  medlineplus?: boolean;
+  internetmedicin?: boolean;
+  orto?: boolean;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { query } = await request.json();
+    const { query, sources } = await request.json();
 
     if (!query) {
       return NextResponse.json(
@@ -18,13 +25,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Search multiple medical databases in parallel
-    const [pubmedResults, medlinePlusResults] = await Promise.all([
-      searchPubMed(query),
-      searchMedlinePlus(query),
-    ]);
+    // Default to all sources if not specified
+    const enabledSources: Sources = sources || {
+      pubmed: true,
+      medlineplus: true,
+      internetmedicin: true,
+      orto: true,
+    };
 
-    const allResults = [...pubmedResults, ...medlinePlusResults];
+    // Search enabled databases in parallel
+    const searchPromises: Promise<SearchResult[]>[] = [];
+
+    if (enabledSources.pubmed) {
+      searchPromises.push(searchPubMed(query));
+    }
+    if (enabledSources.medlineplus) {
+      searchPromises.push(searchMedlinePlus(query));
+    }
+    if (enabledSources.internetmedicin) {
+      searchPromises.push(searchInternetmedicin(query));
+    }
+    if (enabledSources.orto) {
+      searchPromises.push(searchOrto(query));
+    }
+
+    const resultsArrays = await Promise.all(searchPromises);
+    const allResults = resultsArrays.flat();
 
     return NextResponse.json({ results: allResults });
   } catch (error) {
@@ -127,8 +153,53 @@ async function searchMedlinePlus(query: string): Promise<SearchResult[]> {
   }
 }
 
-// You can add more search sources here:
-// - OpenFDA: https://open.fda.gov/apis/
-// - ClinicalTrials.gov: https://clinicaltrials.gov/api/
-// - CDC: Custom scraping or API if available
-// - WHO: Custom scraping or API if available
+async function searchInternetmedicin(query: string): Promise<SearchResult[]> {
+  try {
+    // Use Google Custom Search API or direct search
+    // For now, we'll construct search URLs that users can visit
+    // In production, you'd want to use Google Custom Search API
+    const searchUrl = `https://www.internetmedicin.se/search?q=${encodeURIComponent(query)}`;
+
+    // Since we can't easily scrape without a proper API, we'll provide a search link
+    // You could integrate Google Custom Search API here with your own API key
+    const results: SearchResult[] = [
+      {
+        title: `Search Internetmedicin for: ${query}`,
+        snippet: "Click to search Internetmedicin.se, a Swedish medical information database for healthcare professionals.",
+        url: searchUrl,
+        source: "Internetmedicin",
+      },
+    ];
+
+    return results;
+  } catch (error) {
+    console.error("Internetmedicin search error:", error);
+    return [];
+  }
+}
+
+async function searchOrto(query: string): Promise<SearchResult[]> {
+  try {
+    // Similar to Internetmedicin, provide search link
+    const searchUrl = `https://www.orto.nu/search?q=${encodeURIComponent(query)}`;
+
+    const results: SearchResult[] = [
+      {
+        title: `Search Orto.nu for: ${query}`,
+        snippet: "Click to search Orto.nu, a Swedish orthopedic information resource.",
+        url: searchUrl,
+        source: "Orto.nu",
+      },
+    ];
+
+    return results;
+  } catch (error) {
+    console.error("Orto.nu search error:", error);
+    return [];
+  }
+}
+
+// You can enhance these search functions with:
+// 1. Google Custom Search API (requires API key)
+// 2. Web scraping (requires careful implementation)
+// 3. Site-specific APIs if available

@@ -16,6 +16,18 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Source selection state
+  const [sources, setSources] = useState({
+    pubmed: true,
+    medlineplus: true,
+    internetmedicin: true,
+    orto: true,
+  });
+
+  const handleSourceToggle = (source: keyof typeof sources) => {
+    setSources((prev) => ({ ...prev, [source]: !prev[source] }));
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -38,11 +50,11 @@ export default function Home() {
       const { medicalTerms } = await translateRes.json();
       setTranslatedQuery(medicalTerms);
 
-      // Step 2: Search medical databases
+      // Step 2: Search medical databases with selected sources
       const searchRes = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: medicalTerms }),
+        body: JSON.stringify({ query: medicalTerms, sources }),
       });
 
       if (!searchRes.ok) {
@@ -71,7 +83,7 @@ export default function Home() {
         </header>
 
         <form onSubmit={handleSearch} className="mb-8">
-          <div className="flex gap-2">
+          <div className="flex gap-2 mb-4">
             <input
               type="text"
               value={query}
@@ -87,6 +99,62 @@ export default function Home() {
             >
               {loading ? "Searching..." : "Search"}
             </button>
+          </div>
+
+          {/* Source Selection */}
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              Search Sources:
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sources.pubmed}
+                  onChange={() => handleSourceToggle("pubmed")}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  PubMed
+                </span>
+              </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sources.medlineplus}
+                  onChange={() => handleSourceToggle("medlineplus")}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  MedlinePlus
+                </span>
+              </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sources.internetmedicin}
+                  onChange={() => handleSourceToggle("internetmedicin")}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Internetmedicin
+                </span>
+              </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sources.orto}
+                  onChange={() => handleSourceToggle("orto")}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Orto.nu
+                </span>
+              </label>
+            </div>
           </div>
         </form>
 
@@ -148,7 +216,7 @@ export default function Home() {
           <p className="mb-2">
             ⚠️ This tool is for informational purposes only. Always consult a healthcare professional for medical advice.
           </p>
-          <p>Powered by AI • Searching PubMed & MedlinePlus</p>
+          <p>Powered by AI • Multi-source Medical Search</p>
         </footer>
       </div>
     </div>
