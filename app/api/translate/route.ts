@@ -137,14 +137,13 @@ async function translateWithGoogle(
           {
             parts: [
               {
-                text: `You are a medical terminology expert. Convert this layman's description into precise medical terms. Return ONLY the medical terms, no explanations.\n\nUser description: "${query}"\n\nMedical terms:`,
+                text: `Convert to medical terms (brief): "${query}"`,
               },
             ],
           },
         ],
         generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 500,
+          temperature: 0.1,
         },
       }),
     }
