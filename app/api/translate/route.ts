@@ -159,9 +159,11 @@ async function translateWithGoogle(
   const data = await response.json();
 
   // Check if response has the expected structure
-  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+  console.log("Gemini response structure:", JSON.stringify(data, null, 2));
+
+  if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
     console.error("Unexpected Google API response:", JSON.stringify(data));
-    throw new Error("Invalid response from Google API");
+    throw new Error(`Invalid response from Google API: ${JSON.stringify(data)}`);
   }
 
   return data.candidates[0].content.parts[0].text.trim();
