@@ -9,9 +9,16 @@ interface SearchResult {
   source: string;
 }
 
+interface AISource {
+  title: string;
+  url: string;
+}
+
 export default function Home() {
   const [query, setQuery] = useState("");
   const [translatedQuery, setTranslatedQuery] = useState("");
+  const [aiAnswer, setAiAnswer] = useState("");
+  const [aiSources, setAiSources] = useState<AISource[]>([]);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -33,6 +40,8 @@ export default function Home() {
     setLoading(true);
     setError("");
     setResults([]);
+    setAiAnswer("");
+    setAiSources([]);
     setTranslatedQuery("");
 
     try {
@@ -52,19 +61,30 @@ export default function Home() {
       const { medicalTerms } = await translateRes.json();
       setTranslatedQuery(medicalTerms);
 
-      // Step 2: Search medical databases with selected sources
+      // Step 2: AI Search with Gemini Google Search Grounding
+      const aiSearchRes = await fetch("/api/ai-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, medicalTerms }),
+      });
+
+      if (aiSearchRes.ok) {
+        const { answer, sources: foundSources } = await aiSearchRes.json();
+        setAiAnswer(answer);
+        setAiSources(foundSources || []);
+      }
+
+      // Step 3: Traditional search (as fallback/complement)
       const searchRes = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: medicalTerms, sources }),
       });
 
-      if (!searchRes.ok) {
-        throw new Error("Sökningen misslyckades");
+      if (searchRes.ok) {
+        const { results: searchResults } = await searchRes.json();
+        setResults(searchResults);
       }
-
-      const { results: searchResults } = await searchRes.json();
-      setResults(searchResults);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ett fel inträffade");
     } finally {
@@ -174,10 +194,64 @@ export default function Home() {
           </div>
         )}
 
+        {/* AI Answer Section */}
+        {aiAnswer && (
+          <div className="mb-8 p-6 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-2 border-green-300 dark:border-green-700 rounded-xl shadow-lg">
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              <h2 className="text-2xl font-bold text-green-800 dark:text-green-300">
+                AI-Svar
+              </h2>
+            </div>
+
+            <div className="prose prose-green dark:prose-invert max-w-none">
+              <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                {aiAnswer}
+              </p>
+            </div>
+
+            {aiSources.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-green-300 dark:border-green-700">
+                <p className="font-semibold text-green-800 dark:text-green-300 mb-3">
+                  Källor:
+                </p>
+                <div className="space-y-2">
+                  {aiSources.map((source, index) => (
+                    <a
+                      key={index}
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-3 bg-white dark:bg-gray-800 rounded-lg hover:shadow-md transition-shadow border border-green-200 dark:border-green-800"
+                    >
+                      <div className="flex items-start gap-2">
+                        <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                            {source.title}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {source.url}
+                          </p>
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Traditional Search Results */}
         {results.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-              Sökresultat ({results.length})
+              Ytterligare resultat ({results.length})
             </h2>
             {results.map((result, index) => (
               <div
@@ -208,7 +282,7 @@ export default function Home() {
           </div>
         )}
 
-        {!loading && results.length === 0 && !error && translatedQuery && (
+        {!loading && !aiAnswer && results.length === 0 && !error && translatedQuery && (
           <div className="text-center text-gray-500 dark:text-gray-400 mt-12">
             <p>Inga resultat hittades. Prova ett annat sökord.</p>
           </div>
@@ -218,7 +292,7 @@ export default function Home() {
           <p className="mb-2">
             ⚠️ Detta verktyg är endast för informationsändamål. Konsultera alltid en vårdprofessionell för medicinsk rådgivning.
           </p>
-          <p>Drivs av AI • Söker i flera medicinska källor</p>
+          <p>Drivs av Gemini AI • Söker i flera medicinska källor</p>
         </footer>
       </div>
     </div>
