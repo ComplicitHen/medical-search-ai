@@ -137,13 +137,18 @@ async function translateWithGoogle(
           {
             parts: [
               {
-                text: `Convert to medical terms (brief): "${query}"`,
+                text: `Du är en medicinsk terminologi-expert. Översätt denna beskrivning till exakta medicinska termer. Svara ENDAST med termerna, inga förklaringar.
+
+Beskrivning: "${query}"
+
+Medicinska termer:`,
               },
             ],
           },
         ],
         generationConfig: {
           temperature: 0.1,
+          maxOutputTokens: 100,
         },
       }),
     }
