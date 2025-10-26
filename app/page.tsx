@@ -1,0 +1,156 @@
+"use client";
+
+import { useState } from "react";
+
+interface SearchResult {
+  title: string;
+  snippet: string;
+  url: string;
+  source: string;
+}
+
+export default function Home() {
+  const [query, setQuery] = useState("");
+  const [translatedQuery, setTranslatedQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setResults([]);
+    setTranslatedQuery("");
+
+    try {
+      // Step 1: Translate layman's terms to medical terms
+      const translateRes = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!translateRes.ok) {
+        throw new Error("Translation failed");
+      }
+
+      const { medicalTerms } = await translateRes.json();
+      setTranslatedQuery(medicalTerms);
+
+      // Step 2: Search medical databases
+      const searchRes = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: medicalTerms }),
+      });
+
+      if (!searchRes.ok) {
+        throw new Error("Search failed");
+      }
+
+      const { results: searchResults } = await searchRes.json();
+      setResults(searchResults);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <header className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-4">
+            Medical Search AI
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 text-lg">
+            Describe your symptoms in plain language - AI will translate them to medical terms
+          </p>
+        </header>
+
+        <form onSubmit={handleSearch} className="mb-8">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="e.g., I have a really bad headache with light sensitivity..."
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+              required
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? "Searching..." : "Search"}
+            </button>
+          </div>
+        </form>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg dark:bg-red-900 dark:border-red-700 dark:text-red-200">
+            <p className="font-semibold">Error:</p>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {translatedQuery && (
+          <div className="mb-6 p-4 bg-blue-100 border border-blue-400 text-blue-800 rounded-lg dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200">
+            <p className="font-semibold mb-1">AI Translation:</p>
+            <p className="italic">{translatedQuery}</p>
+          </div>
+        )}
+
+        {results.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+              Search Results ({results.length})
+            </h2>
+            {results.map((result, index) => (
+              <div
+                key={index}
+                className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded">
+                    {result.source}
+                  </span>
+                </div>
+                <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-2">
+                  {result.title}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-3">
+                  {result.snippet}
+                </p>
+                <a
+                  href={result.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline text-sm"
+                >
+                  Read more →
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && results.length === 0 && !error && translatedQuery && (
+          <div className="text-center text-gray-500 dark:text-gray-400 mt-12">
+            <p>No results found. Try a different search term.</p>
+          </div>
+        )}
+
+        <footer className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400">
+          <p className="mb-2">
+            ⚠️ This tool is for informational purposes only. Always consult a healthcare professional for medical advice.
+          </p>
+          <p>Powered by AI • Searching PubMed & MedlinePlus</p>
+        </footer>
+      </div>
+    </div>
+  );
+}
