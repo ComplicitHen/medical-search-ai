@@ -144,7 +144,7 @@ async function translateWithGoogle(
         ],
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 100,
+          maxOutputTokens: 500,
         },
       }),
     }
@@ -161,12 +161,24 @@ async function translateWithGoogle(
   // Check if response has the expected structure
   console.log("Gemini response structure:", JSON.stringify(data, null, 2));
 
-  if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-    console.error("Unexpected Google API response:", JSON.stringify(data));
-    throw new Error(`Invalid response from Google API: ${JSON.stringify(data)}`);
+  const candidate = data.candidates?.[0];
+
+  if (!candidate) {
+    throw new Error("Inget svar från Gemini API");
   }
 
-  return data.candidates[0].content.parts[0].text.trim();
+  if (candidate.finishReason === "MAX_TOKENS") {
+    throw new Error("Svaret blev för långt (MAX_TOKENS) - försök igen");
+  }
+
+  const text = candidate.content?.parts?.[0]?.text;
+
+  if (!text) {
+    console.error("Unexpected Google API response:", JSON.stringify(data));
+    throw new Error(`Tomt svar från Gemini: ${candidate.finishReason || 'unknown reason'}`);
+  }
+
+  return text.trim();
 }
 
 function fallbackTranslation(query: string): string {
