@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Medical Search AI - Find Medical Information",
-  description: "Search medical information with AI-powered translation from layman's terms to medical terminology",
+  title: "Medicinsk Sökning AI - Hitta Medicinsk Information",
+  description: "Sök medicinsk information med AI-driven översättning från vardagliga termer till medicinsk terminologi",
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="sv">
       <body className="antialiased">
         {children}
       </body>

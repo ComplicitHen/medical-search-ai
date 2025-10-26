@@ -44,7 +44,7 @@ export default function Home() {
       });
 
       if (!translateRes.ok) {
-        throw new Error("Translation failed");
+        throw new Error("Översättning misslyckades");
       }
 
       const { medicalTerms } = await translateRes.json();
@@ -58,13 +58,13 @@ export default function Home() {
       });
 
       if (!searchRes.ok) {
-        throw new Error("Search failed");
+        throw new Error("Sökningen misslyckades");
       }
 
       const { results: searchResults } = await searchRes.json();
       setResults(searchResults);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "Ett fel inträffade");
     } finally {
       setLoading(false);
     }
@@ -75,10 +75,10 @@ export default function Home() {
       <div className="max-w-4xl mx-auto px-4 py-12">
         <header className="text-center mb-12">
           <h1 className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-4">
-            Medical Search AI
+            Medicinsk Sökning AI
           </h1>
           <p className="text-gray-600 dark:text-gray-300 text-lg">
-            Describe your symptoms in plain language - AI will translate them to medical terms
+            Beskriv dina symptom på vanlig svenska - AI översätter dem till medicinska termer
           </p>
         </header>
 
@@ -88,7 +88,7 @@ export default function Home() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="e.g., I have a really bad headache with light sensitivity..."
+              placeholder="t.ex. Jag har värk i huvudet och är känslig för ljus..."
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
               required
             />
@@ -97,14 +97,14 @@ export default function Home() {
               disabled={loading}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? "Searching..." : "Search"}
+              {loading ? "Söker..." : "Sök"}
             </button>
           </div>
 
           {/* Source Selection */}
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              Search Sources:
+              Sökkällor:
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <label className="flex items-center space-x-2 cursor-pointer">
@@ -160,14 +160,14 @@ export default function Home() {
 
         {error && (
           <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg dark:bg-red-900 dark:border-red-700 dark:text-red-200">
-            <p className="font-semibold">Error:</p>
+            <p className="font-semibold">Fel:</p>
             <p>{error}</p>
           </div>
         )}
 
         {translatedQuery && (
           <div className="mb-6 p-4 bg-blue-100 border border-blue-400 text-blue-800 rounded-lg dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200">
-            <p className="font-semibold mb-1">AI Translation:</p>
+            <p className="font-semibold mb-1">AI-översättning:</p>
             <p className="italic">{translatedQuery}</p>
           </div>
         )}
@@ -175,7 +175,7 @@ export default function Home() {
         {results.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-              Search Results ({results.length})
+              Sökresultat ({results.length})
             </h2>
             {results.map((result, index) => (
               <div
@@ -199,7 +199,7 @@ export default function Home() {
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:underline text-sm"
                 >
-                  Read more →
+                  Läs mer →
                 </a>
               </div>
             ))}
@@ -208,15 +208,15 @@ export default function Home() {
 
         {!loading && results.length === 0 && !error && translatedQuery && (
           <div className="text-center text-gray-500 dark:text-gray-400 mt-12">
-            <p>No results found. Try a different search term.</p>
+            <p>Inga resultat hittades. Prova ett annat sökord.</p>
           </div>
         )}
 
         <footer className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400">
           <p className="mb-2">
-            ⚠️ This tool is for informational purposes only. Always consult a healthcare professional for medical advice.
+            ⚠️ Detta verktyg är endast för informationsändamål. Konsultera alltid en vårdprofessionell för medicinsk rådgivning.
           </p>
-          <p>Powered by AI • Multi-source Medical Search</p>
+          <p>Drivs av AI • Söker i flera medicinska källor</p>
         </footer>
       </div>
     </div>
