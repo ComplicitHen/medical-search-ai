@@ -155,51 +155,112 @@ async function searchMedlinePlus(query: string): Promise<SearchResult[]> {
 
 async function searchInternetmedicin(query: string): Promise<SearchResult[]> {
   try {
-    // Use Google Custom Search API or direct search
-    // For now, we'll construct search URLs that users can visit
-    // In production, you'd want to use Google Custom Search API
-    const searchUrl = `https://www.internetmedicin.se/search?q=${encodeURIComponent(query)}`;
+    const googleApiKey = process.env.GOOGLE_API_KEY;
+    const googleCseId = process.env.GOOGLE_CSE_ID;
 
-    // Since we can't easily scrape without a proper API, we'll provide a search link
-    // You could integrate Google Custom Search API here with your own API key
-    const results: SearchResult[] = [
-      {
-        title: `Search Internetmedicin for: ${query}`,
-        snippet: "Click to search Internetmedicin.se, a Swedish medical information database for healthcare professionals.",
-        url: searchUrl,
-        source: "Internetmedicin",
-      },
-    ];
+    // If no API key or CSE ID, provide direct search link
+    if (!googleApiKey || !googleCseId || googleCseId === 'your_cse_id_here') {
+      const searchUrl = `https://www.internetmedicin.se/search?q=${encodeURIComponent(query)}`;
+      return [
+        {
+          title: `Search Internetmedicin for: ${query}`,
+          snippet: "Click to search Internetmedicin.se, a Swedish medical information database for healthcare professionals. (Configure Google Custom Search for direct results)",
+          url: searchUrl,
+          source: "Internetmedicin",
+        },
+      ];
+    }
+
+    // Use Google Custom Search API
+    const apiUrl = `https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCseId}&q=${encodeURIComponent(query)}+site:internetmedicin.se&num=5`;
+
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      throw new Error(`Google CSE API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const results: SearchResult[] = [];
+
+    if (data.items) {
+      for (const item of data.items) {
+        results.push({
+          title: item.title || "Untitled",
+          snippet: item.snippet || "No description available",
+          url: item.link,
+          source: "Internetmedicin",
+        });
+      }
+    }
 
     return results;
   } catch (error) {
     console.error("Internetmedicin search error:", error);
-    return [];
+    // Fallback to direct link
+    const searchUrl = `https://www.internetmedicin.se/search?q=${encodeURIComponent(query)}`;
+    return [
+      {
+        title: `Search Internetmedicin for: ${query}`,
+        snippet: "Error fetching results. Click to search directly.",
+        url: searchUrl,
+        source: "Internetmedicin",
+      },
+    ];
   }
 }
 
 async function searchOrto(query: string): Promise<SearchResult[]> {
   try {
-    // Similar to Internetmedicin, provide search link
-    const searchUrl = `https://www.orto.nu/search?q=${encodeURIComponent(query)}`;
+    const googleApiKey = process.env.GOOGLE_API_KEY;
+    const googleCseId = process.env.GOOGLE_CSE_ID;
 
-    const results: SearchResult[] = [
-      {
-        title: `Search Orto.nu for: ${query}`,
-        snippet: "Click to search Orto.nu, a Swedish orthopedic information resource.",
-        url: searchUrl,
-        source: "Orto.nu",
-      },
-    ];
+    // If no API key or CSE ID, provide direct search link
+    if (!googleApiKey || !googleCseId || googleCseId === 'your_cse_id_here') {
+      const searchUrl = `https://www.orto.nu/search?q=${encodeURIComponent(query)}`;
+      return [
+        {
+          title: `Search Orto.nu for: ${query}`,
+          snippet: "Click to search Orto.nu, a Swedish orthopedic information resource. (Configure Google Custom Search for direct results)",
+          url: searchUrl,
+          source: "Orto.nu",
+        },
+      ];
+    }
+
+    // Use Google Custom Search API
+    const apiUrl = `https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCseId}&q=${encodeURIComponent(query)}+site:orto.nu&num=5`;
+
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      throw new Error(`Google CSE API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const results: SearchResult[] = [];
+
+    if (data.items) {
+      for (const item of data.items) {
+        results.push({
+          title: item.title || "Untitled",
+          snippet: item.snippet || "No description available",
+          url: item.link,
+          source: "Orto.nu",
+        });
+      }
+    }
 
     return results;
   } catch (error) {
     console.error("Orto.nu search error:", error);
-    return [];
+    // Fallback to direct link
+    const searchUrl = `https://www.orto.nu/search?q=${encodeURIComponent(query)}`;
+    return [
+      {
+        title: `Search Orto.nu for: ${query}`,
+        snippet: "Error fetching results. Click to search directly.",
+        url: searchUrl,
+        source: "Orto.nu",
+      },
+    ];
   }
 }
-
-// You can enhance these search functions with:
-// 1. Google Custom Search API (requires API key)
-// 2. Web scraping (requires careful implementation)
-// 3. Site-specific APIs if available
