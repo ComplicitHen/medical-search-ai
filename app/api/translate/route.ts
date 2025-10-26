@@ -16,15 +16,26 @@ export async function POST(request: NextRequest) {
     const openaiKey = process.env.OPENAI_API_KEY;
     const googleKey = process.env.GOOGLE_API_KEY;
 
+    console.log("API Keys available:", {
+      anthropic: !!anthropicKey,
+      openai: !!openaiKey,
+      google: !!googleKey,
+      googleKeyLength: googleKey?.length
+    });
+
     let medicalTerms: string;
 
     if (anthropicKey) {
+      console.log("Using Anthropic API");
       medicalTerms = await translateWithAnthropic(query, anthropicKey);
     } else if (openaiKey) {
+      console.log("Using OpenAI API");
       medicalTerms = await translateWithOpenAI(query, openaiKey);
     } else if (googleKey) {
+      console.log("Using Google API");
       medicalTerms = await translateWithGoogle(query, googleKey);
     } else {
+      console.log("Using fallback translation (no API key)");
       // Fallback: simple keyword extraction (no AI)
       medicalTerms = fallbackTranslation(query);
     }

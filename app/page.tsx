@@ -44,7 +44,9 @@ export default function Home() {
       });
 
       if (!translateRes.ok) {
-        throw new Error("Översättning misslyckades");
+        const errorData = await translateRes.json();
+        const errorMsg = errorData.details || errorData.error || "Översättning misslyckades";
+        throw new Error(`Översättning misslyckades: ${errorMsg}`);
       }
 
       const { medicalTerms } = await translateRes.json();
