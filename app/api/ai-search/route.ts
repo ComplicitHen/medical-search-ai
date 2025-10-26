@@ -38,19 +38,42 @@ export async function POST(request: NextRequest) {
             {
               parts: [
                 {
-                  text: `Du är en medicinsk expert. Ge en sammanfattande förklaring på svenska om följande medicinska tillstånd: ${medicalTerms}
+                  text: `Du är en medicinsk informationsspecialist. Din uppgift är att SAMMANSTÄLLA och PRESENTERA detaljerad medicinsk information från pålitliga källor.
 
-Ursprunglig beskrivning från patienten: "${query}"
+Patientens beskrivning: "${query}"
+Medicinska termer: ${medicalTerms}
 
-Sök efter information från medicinska källor (särskilt internetmedicin.se, orto.nu, pubmed.ncbi.nlm.nih.gov, medlineplus.gov).
+SÖK AKTIVT efter information på följande medicinska källor:
+- internetmedicin.se (svensk medicinsk databas)
+- orto.nu (svensk ortopedisk information)
+- pubmed.ncbi.nlm.nih.gov (vetenskapliga artiklar)
+- medlineplus.gov (patientinformation)
 
-Inkludera:
-- Vad tillståndet innebär
-- Vanliga symptom
-- När man ska söka vård
-- Eventuell behandling
+GE EN OMFATTANDE SAMMANSTÄLLNING som inkluderar:
 
-Svara på SVENSKA och håll det kortfattat och begripligt.`,
+1. **Vad tillståndet innebär**: Förklara tillståndet/symtomen baserat på källorna
+
+2. **Vanliga symptom och tecken**: Lista de mest förekommande symtomen
+
+3. **Möjliga orsaker**: Vad kan orsaka detta tillstånd?
+
+4. **När man ska söka vård**:
+   - Akuta varningssignaler
+   - När man bör kontakta vårdcentral
+
+5. **Behandling och egenvård**:
+   - Medicinska behandlingsalternativ
+   - Råd för egenvård
+   - Vad man kan göra själv
+
+6. **Prognos**: Hur brukar det gå, förväntad återhämtningstid
+
+VIKTIGT:
+- Svara på SVENSKA
+- Använd information från FLERA källor
+- Var noggrann och detaljerad (minst 3-4 stycken text)
+- Skriv så att patienter förstår
+- Basera allt på information från de medicinska källorna du hittar`,
                 },
               ],
             },
@@ -67,7 +90,7 @@ Svara på SVENSKA och håll det kortfattat och begripligt.`,
           ],
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 1000,
+            maxOutputTokens: 2000,
           },
         }),
       }
