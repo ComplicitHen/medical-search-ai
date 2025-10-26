@@ -148,7 +148,7 @@ Medicinska termer:`,
         ],
         generationConfig: {
           temperature: 0.1,
-          maxOutputTokens: 200,
+          maxOutputTokens: 1000,
         },
       }),
     }
