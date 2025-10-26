@@ -115,7 +115,7 @@ async function translateWithGoogle(
   apiKey: string
 ): Promise<string> {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: {
@@ -140,10 +140,19 @@ async function translateWithGoogle(
   );
 
   if (!response.ok) {
-    throw new Error(`Google API error: ${response.status}`);
+    const errorText = await response.text();
+    console.error("Google API error:", response.status, errorText);
+    throw new Error(`Google API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
+
+  // Check if response has the expected structure
+  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+    console.error("Unexpected Google API response:", JSON.stringify(data));
+    throw new Error("Invalid response from Google API");
+  }
+
   return data.candidates[0].content.parts[0].text.trim();
 }
 
