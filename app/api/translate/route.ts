@@ -63,7 +63,7 @@ async function translateWithAnthropic(
     },
     body: JSON.stringify({
       model: "claude-3-5-sonnet-20241022",
-      max_tokens: 200,
+      max_tokens: 1024,
       messages: [
         {
           role: "user",
@@ -108,7 +108,7 @@ async function translateWithOpenAI(
           content: `Convert to medical terms: "${query}"`,
         },
       ],
-      max_tokens: 100,
+      max_tokens: 1024,
       temperature: 0.3,
     }),
   });
@@ -150,8 +150,6 @@ Medicinska termer:`,
         ],
         generationConfig: {
           temperature: 0.2,
-          maxOutputTokens: 200,
-          stopSequences: ["\n\n"],
         },
       }),
     }
