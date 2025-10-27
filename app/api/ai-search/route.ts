@@ -55,8 +55,12 @@ export async function POST(request: NextRequest) {
       ? "den valda källan"
       : `de ${sourceList.length} valda källorna`;
 
-    // Use Gemini with Google Search Grounding
-    const response = await fetch(
+    // Try with Google Search Grounding first, fallback to regular Gemini if not supported
+    let response;
+    let useGrounding = true;
+
+    // First attempt: With Google Search Grounding
+    response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${googleApiKey}`,
       {
         method: "POST",
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
             {
               parts: [
                 {
-                  text: `Du är en medicinsk informationsspecialist. Din uppgift är att SAMMANSTÄLLA och PRESENTERA detaljerad medicinsk information från pålitliga källor.
+                  text: `Du är en medicinsk informationsspecialist med tillgång till medicinska databaser. Din uppgift är att ge DETALJERAD medicinsk information.
 
 Patientens beskrivning: "${query}"
 Medicinska termer: ${medicalTerms}
@@ -147,6 +151,76 @@ VIKTIGT:
       }
     );
 
+    // If Search Grounding not supported, fallback to regular Gemini
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (errorData.error?.message?.includes("Search Grounding")) {
+        console.log("Search Grounding not supported, using regular Gemini");
+        useGrounding = false;
+
+        // Retry without Search Grounding
+        response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${googleApiKey}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: `Du är en medicinsk informationsspecialist. Baserat på din medicinska kunskap, ge detaljerad information om följande:
+
+Patientens beskrivning: "${query}"
+Medicinska termer: ${medicalTerms}
+
+GE EN OMFATTANDE SAMMANSTÄLLNING som inkluderar:
+
+1. **Översikt av tillståndet**:
+   - Vad är det troliga tillståndet/diagnosen baserat på symtomen?
+   - Grundläggande förklaring av tillståndet/symtomen
+   - Hur vanligt är det?
+
+2. **Symtom och tecken**:
+   - Lista de mest förekommande symtomen för detta tillstånd
+   - Vilka symptom matchar patientens beskrivning?
+
+3. **Möjliga orsaker och riskfaktorer**:
+   - Vanliga orsaker till detta tillstånd
+   - Riskfaktorer som kan bidra
+
+4. **När man ska söka vård**:
+   - AKUTA varningssignaler som kräver omedelbar vård
+   - När man bör kontakta vårdcentral
+
+5. **Behandling och egenvård**:
+   - Medicinska behandlingsalternativ
+   - Råd för egenvård
+   - Vad man kan göra själv för att lindra symtomen
+
+6. **Prognos**: Hur brukar tillståndet utvecklas?
+
+VIKTIGT:
+- Svara på SVENSKA
+- Var noggrann och detaljerad (5-6 stycken text)
+- Skriv så att patienter förstår, men var medicinskt korrekt
+- Basera svaret på etablerad medicinsk kunskap`,
+                    },
+                  ],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 8000,
+              },
+            }),
+          }
+        );
+      }
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Gemini AI search error:", response.status, errorText);
@@ -168,10 +242,10 @@ VIKTIGT:
       throw new Error("Tomt svar från Gemini");
     }
 
-    // Extract grounding sources if available
+    // Extract grounding sources if available (only when using Search Grounding)
     const sources: GroundingSource[] = [];
 
-    if (candidate.groundingMetadata?.groundingChunks) {
+    if (useGrounding && candidate.groundingMetadata?.groundingChunks) {
       for (const chunk of candidate.groundingMetadata.groundingChunks) {
         if (chunk.web?.uri && chunk.web?.title) {
           sources.push({
@@ -187,10 +261,17 @@ VIKTIGT:
       console.log("Search queries used:", candidate.groundingMetadata.webSearchQueries);
     }
 
+    // Add disclaimer if not using grounding
+    let finalAnswer = text.trim();
+    if (!useGrounding) {
+      finalAnswer = `${text.trim()}\n\n---\n*OBS: Detta svar är baserat på AI:ns träningsdata. För mest aktuell information, kontrollera källorna nedan eller besök de medicinska databaserna.*`;
+    }
+
     return NextResponse.json({
-      answer: text.trim(),
+      answer: finalAnswer,
       sources: sources,
       hasGrounding: sources.length > 0,
+      usedGrounding: useGrounding,
     });
   } catch (error) {
     console.error("AI search error:", error);
