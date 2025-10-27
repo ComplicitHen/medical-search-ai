@@ -137,21 +137,19 @@ async function translateWithGoogle(
           {
             parts: [
               {
-                text: `Du är en medicinsk terminologi-expert. Översätt denna beskrivning till exakta medicinska termer.
+                text: `Översätt till medicinska termer (max 5-8 ord, separerade med komma):
 
-Beskrivning: "${query}"
+"${query}"
 
-Ge en KORT lista med medicinska termer (max 10-15 ord). Svara ENDAST med termerna separerade med komma, INGA förklaringar eller beskrivningar.
-
-Medicinska termer:`,
+Svar:`,
               },
             ],
           },
         ],
         generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 150,
-          stopSequences: ["\n\n"],
+          temperature: 0.1,
+          maxOutputTokens: 50,
+          stopSequences: ["\n\n", "\n", ".", "Förklaring"],
         },
       }),
     }
