@@ -5,9 +5,16 @@ interface GroundingSource {
   url: string;
 }
 
+interface Sources {
+  pubmed?: boolean;
+  medlineplus?: boolean;
+  internetmedicin?: boolean;
+  orto?: boolean;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { query, medicalTerms } = await request.json();
+    const { query, medicalTerms, sources: selectedSources } = await request.json();
 
     if (!query || !medicalTerms) {
       return NextResponse.json(
@@ -24,6 +31,29 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Determine which sources are enabled
+    const enabledSources: Sources = selectedSources || {
+      pubmed: true,
+      medlineplus: true,
+      internetmedicin: true,
+      orto: true,
+    };
+
+    // Build source list string
+    const sourceList: string[] = [];
+    if (enabledSources.internetmedicin) sourceList.push("internetmedicin.se (svensk medicinsk databas)");
+    if (enabledSources.orto) sourceList.push("orto.nu (svensk ortopedisk information)");
+    if (enabledSources.pubmed) sourceList.push("pubmed.ncbi.nlm.nih.gov (vetenskapliga artiklar)");
+    if (enabledSources.medlineplus) sourceList.push("medlineplus.gov (patientinformation)");
+
+    const sourcesText = sourceList.length > 0
+      ? sourceList.map(s => `- ${s}`).join('\n')
+      : "- internetmedicin.se\n- orto.nu\n- pubmed.ncbi.nlm.nih.gov\n- medlineplus.gov";
+
+    const sourceCountText = sourceList.length === 1
+      ? "den valda källan"
+      : `de ${sourceList.length} valda källorna`;
 
     // Use Gemini with Google Search Grounding
     const response = await fetch(
@@ -43,37 +73,58 @@ export async function POST(request: NextRequest) {
 Patientens beskrivning: "${query}"
 Medicinska termer: ${medicalTerms}
 
-SÖK AKTIVT efter information på följande medicinska källor:
-- internetmedicin.se (svensk medicinsk databas)
-- orto.nu (svensk ortopedisk information)
-- pubmed.ncbi.nlm.nih.gov (vetenskapliga artiklar)
-- medlineplus.gov (patientinformation)
+SÖK AKTIVT efter information från ${sourceCountText}. Sök med BÅDE patientens ursprungliga beskrivning OCH de medicinska termerna för att få bästa resultat:
+${sourcesText}
 
 GE EN OMFATTANDE SAMMANSTÄLLNING som inkluderar:
 
-1. **Vad tillståndet innebär**: Förklara tillståndet/symtomen baserat på källorna
+1. **Översikt av tillståndet**:
+   - Vad är det troliga tillståndet/diagnosen baserat på symtomen?
+   - Grundläggande förklaring av tillståndet/symtomen
+   - Hur vanligt är det?
 
-2. **Vanliga symptom och tecken**: Lista de mest förekommande symtomen
+2. **Symtom och tecken**:
+   - Lista de mest förekommande symtomen för detta tillstånd
+   - Vilka symptom matchar patientens beskrivning?
+   - Eventuella relaterade symptom att vara uppmärksam på
 
-3. **Möjliga orsaker**: Vad kan orsaka detta tillstånd?
+3. **Möjliga orsaker och riskfaktorer**:
+   - Vanliga orsaker till detta tillstånd
+   - Riskfaktorer som kan bidra
+   - Bakomliggande mekanismer
 
 4. **När man ska söka vård**:
-   - Akuta varningssignaler
+   - AKUTA varningssignaler som kräver omedelbar vård
    - När man bör kontakta vårdcentral
+   - När egenvård kan vara tillräckligt
 
-5. **Behandling och egenvård**:
-   - Medicinska behandlingsalternativ
-   - Råd för egenvård
-   - Vad man kan göra själv
+5. **Utredning och diagnos**:
+   - Hur ställs diagnosen?
+   - Vanliga undersökningar och tester
+   - Eventuella differentialdiagnoser
 
-6. **Prognos**: Hur brukar det gå, förväntad återhämtningstid
+6. **Behandling och egenvård**:
+   - Medicinska behandlingsalternativ (läkemedel, kirurgi, etc.)
+   - Evidensbaserade råd för egenvård
+   - Livsstilsförändringar som kan hjälpa
+   - Vad man kan göra själv för att lindra symtomen
+
+7. **Prognos och förlopp**:
+   - Hur brukar tillståndet utvecklas?
+   - Förväntad återhämtningstid
+   - Långsiktiga utsikter
 
 VIKTIGT:
 - Svara på SVENSKA
-- Använd information från FLERA källor
-- Var noggrann och detaljerad (minst 3-4 stycken text)
-- Skriv så att patienter förstår
-- Basera allt på information från de medicinska källorna du hittar`,
+- Använd ENDAST information från de källor du hittar via sökningen - INGA EGNA ANTAGANDEN
+- Fokusera ENDAST på ${sourceCountText} - sök INTE på andra källor
+- Om du inte hittar tillräckligt med information från de valda källorna, var ärlig om det
+- Använd information från så många av de valda källorna som möjligt
+- Var MYCKET noggrann och detaljerad (minst 5-6 stycken text totalt om information finns)
+- Skriv så att patienter förstår, men var medicinskt korrekt
+- Basera allt på information från de valda medicinska källorna
+- Inkludera specifika detaljer från källorna som stödjer informationen
+- Citera eller referera till källorna när du presenterar information`,
                 },
               ],
             },
@@ -89,7 +140,7 @@ VIKTIGT:
             },
           ],
           generationConfig: {
-            temperature: 0.4,
+            temperature: 0.1,
             maxOutputTokens: 8000,
           },
         }),

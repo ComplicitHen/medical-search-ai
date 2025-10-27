@@ -16,7 +16,7 @@ interface Sources {
 
 export async function POST(request: NextRequest) {
   try {
-    const { query, sources } = await request.json();
+    const { query, originalQuery, sources } = await request.json();
 
     if (!query) {
       return NextResponse.json(
@@ -33,26 +33,48 @@ export async function POST(request: NextRequest) {
       orto: true,
     };
 
-    // Search enabled databases in parallel
+    // Create combined search query (medical terms + original query)
+    const combinedQuery = originalQuery
+      ? `${query} ${originalQuery}`
+      : query;
+
+    // Search enabled databases in parallel with both queries
     const searchPromises: Promise<SearchResult[]>[] = [];
 
     if (enabledSources.pubmed) {
+      // Search with medical terms
       searchPromises.push(searchPubMed(query));
+      // Also search with original query if provided
+      if (originalQuery && originalQuery !== query) {
+        searchPromises.push(searchPubMed(originalQuery));
+      }
     }
     if (enabledSources.medlineplus) {
       searchPromises.push(searchMedlinePlus(query));
+      if (originalQuery && originalQuery !== query) {
+        searchPromises.push(searchMedlinePlus(originalQuery));
+      }
     }
     if (enabledSources.internetmedicin) {
-      searchPromises.push(searchInternetmedicin(query));
+      searchPromises.push(searchInternetmedicin(combinedQuery));
     }
     if (enabledSources.orto) {
-      searchPromises.push(searchOrto(query));
+      searchPromises.push(searchOrto(combinedQuery));
     }
 
     const resultsArrays = await Promise.all(searchPromises);
     const allResults = resultsArrays.flat();
 
-    return NextResponse.json({ results: allResults });
+    // Remove duplicates based on URL
+    const uniqueResults = allResults.reduce((acc: SearchResult[], current) => {
+      const isDuplicate = acc.some(item => item.url === current.url);
+      if (!isDuplicate) {
+        acc.push(current);
+      }
+      return acc;
+    }, []);
+
+    return NextResponse.json({ results: uniqueResults });
   } catch (error) {
     console.error("Search error:", error);
     return NextResponse.json(

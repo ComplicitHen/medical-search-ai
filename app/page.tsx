@@ -65,7 +65,7 @@ export default function Home() {
       const aiSearchRes = await fetch("/api/ai-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, medicalTerms }),
+        body: JSON.stringify({ query, medicalTerms, sources }),
       });
 
       if (aiSearchRes.ok) {
@@ -78,7 +78,11 @@ export default function Home() {
       const searchRes = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: medicalTerms, sources }),
+        body: JSON.stringify({
+          query: medicalTerms,
+          originalQuery: query,
+          sources
+        }),
       });
 
       if (searchRes.ok) {
@@ -197,26 +201,36 @@ export default function Home() {
         {/* AI Answer Section */}
         {aiAnswer && (
           <div className="mb-8 p-6 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-2 border-green-300 dark:border-green-700 rounded-xl shadow-lg">
-            <div className="flex items-center gap-2 mb-4">
-              <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            <div className="flex items-center gap-3 mb-5 pb-4 border-b-2 border-green-300 dark:border-green-700">
+              <svg className="w-8 h-8 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <h2 className="text-2xl font-bold text-green-800 dark:text-green-300">
-                AI-Svar
-              </h2>
+              <div>
+                <h2 className="text-2xl font-bold text-green-800 dark:text-green-300">
+                  Medicinsk Information
+                </h2>
+                <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                  Sammanställd från medicinska källor
+                </p>
+              </div>
             </div>
 
-            <div className="prose prose-green dark:prose-invert max-w-none">
-              <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+            <div className="prose prose-lg dark:prose-invert max-w-none">
+              <div className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed text-base">
                 {aiAnswer}
-              </p>
+              </div>
             </div>
 
             {aiSources.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-green-300 dark:border-green-700">
-                <p className="font-semibold text-green-800 dark:text-green-300 mb-3">
-                  Källor:
-                </p>
+              <div className="mt-6 pt-4 border-t-2 border-green-300 dark:border-green-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  <p className="font-bold text-green-800 dark:text-green-300 text-lg">
+                    Källor ({aiSources.length})
+                  </p>
+                </div>
                 <div className="space-y-2">
                   {aiSources.map((source, index) => (
                     <a
@@ -250,9 +264,14 @@ export default function Home() {
         {/* Traditional Search Results */}
         {results.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-              Ytterligare resultat ({results.length})
-            </h2>
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                Ytterligare resultat ({results.length})
+              </h2>
+            </div>
             {results.map((result, index) => (
               <div
                 key={index}
