@@ -22,6 +22,7 @@ export default function Home() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [aiError, setAiError] = useState("");
 
   // Source selection state
   const [sources, setSources] = useState({
@@ -39,6 +40,7 @@ export default function Home() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setAiError("");
     setResults([]);
     setAiAnswer("");
     setAiSources([]);
@@ -76,6 +78,11 @@ export default function Home() {
         // Log error but continue with traditional search
         const errorData = await aiSearchRes.json().catch(() => ({}));
         console.error("AI search failed:", errorData);
+        setAiError(
+          `AI-sökning misslyckades: ${errorData.error || "Okänt fel"}. ${
+            errorData.details || ""
+          }`
+        );
         // Don't throw error, just continue without AI answer
       }
 
@@ -193,6 +200,16 @@ export default function Home() {
           <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg dark:bg-red-900 dark:border-red-700 dark:text-red-200">
             <p className="font-semibold">Fel:</p>
             <p>{error}</p>
+          </div>
+        )}
+
+        {aiError && (
+          <div className="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200">
+            <p className="font-semibold">⚠️ Varning:</p>
+            <p>{aiError}</p>
+            <p className="text-sm mt-2">
+              Tips: Kontrollera att GOOGLE_API_KEY är konfigurerad i environment variables.
+            </p>
           </div>
         )}
 
