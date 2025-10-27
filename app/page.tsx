@@ -72,6 +72,11 @@ export default function Home() {
         const { answer, sources: foundSources } = await aiSearchRes.json();
         setAiAnswer(answer);
         setAiSources(foundSources || []);
+      } else {
+        // Log error but continue with traditional search
+        const errorData = await aiSearchRes.json().catch(() => ({}));
+        console.error("AI search failed:", errorData);
+        // Don't throw error, just continue without AI answer
       }
 
       // Step 3: Traditional search (as fallback/complement)
